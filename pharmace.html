@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جدول أدوية زراعة الكبد</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 26px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        /* جدول المواعيد */
+        .schedule-box {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-right: 5px solid #1976d2;
+        }
+        .schedule-box h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .schedule-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 8px;
+        }
+        .sched-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            border-right: 3px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .sched-item .med-name { font-weight: bold; color: #333; }
+        .sched-item .med-time { color: #e91e63; font-weight: bold; font-size: 12px; }
+        
+        /* التنقل بين الأسابيع */
+        .week-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .nav-btn {
+            padding: 8px 18px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .nav-btn:hover { background: #5568d3; }
+        .week-label {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        /* الجدول الرئيسي */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 900px;
+        }
+        thead {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        th {
+            padding: 10px 6px;
+            font-size: 12px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        td {
+            padding: 8px 6px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        tbody tr:nth-child(even) { background: #fafafa; }
+        tbody tr:hover { background: #e8eaf6; }
+        
+        .med-cell {
+            text-align: right;
+            padding: 8px 12px;
+            background: #f5f5f5;
+            font-weight: bold;
+            min-width: 140px;
+        }
+        .med-cell .name { color: #333; font-size: 14px; }
+        .med-cell .dose { color: #667eea; font-size: 11px; margin-top: 2px; }
+        .med-cell .times { color: #e91e63; font-size: 10px; margin-top: 3px; font-weight: normal; }
+        
+        .dose-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+        }
+        .dose-check {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            color: #666;
+        }
+        .dose-check input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #4caf50;
+        }
+        .dose-check.checked label {
+            color: #4caf50;
+            font-weight: bold;
+            text-decoration: line-through;
+        }
+        
+        .today-col { background: #fff9c4 !important; }
+        .weekend-col { background: #fce4ec !important; }
+        .eod-col { background: #e8f5e9 !important; } /* يوم ويوم - يوم بديل */
+        .eod-off { background: #f5f5f5 !important; opacity: 0.5; }
+        
+        /* الإحصائيات */
+        .stats {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .stats h3 { color: #333; margin-bottom: 10px; }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.4s;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .stat-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        }
+        .stat-value { font-size: 24px; font-weight: bold; color: #667eea; }
+        .stat-label { font-size: 12px; color: #666; margin-top: 3px; }
+        
+        /* الأزرار */
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.3s;
+        }
+        .btn-print { background: #2196f3; }
+        .btn-print:hover { background: #1976d2; }
+        .btn-save { background: #4caf50; }
+        .btn-save:hover { background: #388e3c; }
+        .btn-clear { background: #f44336; }
+        .btn-clear:hover { background: #d32f2f; }
+        .btn-today { background: #ff9800; }
+        .btn-today:hover { background: #f57c00; }
+        
+        /* الملاحظات */
+        .notes {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff8e1;
+            border-radius: 10px;
+            border-right: 4px solid #ffc107;
+        }
+        .notes h3 { color: #f57c00; margin-bottom: 8px; }
+        .notes textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+        }
+        
+        /* تنبيه اليوم */
+        .today-alert {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        .today-alert strong { color: #856404; }
+        
+        /* للطباعة */
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; padding: 10px; }
+            .actions, .week-nav, .stats { display: none; }
+            .table-wrapper { overflow: visible; }
+            table { font-size: 10px; }
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 20px; }
+            .schedule-list { grid-template-columns: 1fr 1fr; }
+            .sched-item { font-size: 11px; padding: 6px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1> جدول أدوية زراعة الكبد</h1>
+        <p class="subtitle">يبدأ من 24 يوليو 2026 - متابعة يومية دقيقة</p>
+        
+        <div class="today-alert" id="todayAlert">
+            📅 <strong>اليوم:</strong> <span id="todayDate"></span>
+        </div>
+        
+        <!-- جدول المواعيد -->
+        <div class="schedule-box">
+            <h3>⏰ مواعيد الأدوية اليومية</h3>
+            <div class="schedule-list" id="scheduleList"></div>
+        </div>
+        
+        <!-- التنقل -->
+        <div class="week-nav">
+            <button class="nav-btn" onclick="changeWeek(-1)">◀ الأسبوع السابق</button>
+            <div class="week-label" id="weekLabel"></div>
+            <button class="nav-btn btn-today" onclick="goToToday()">📍 اليوم</button>
+            <button class="nav-btn" onclick="changeWeek(1)">الأسبوع التالي ▶</button>
+        </div>
+        
+        <!-- الجدول -->
+        <div class="table-wrapper">
+            <table id="mainTable">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        
+        <!-- الإحصائيات -->
+        <div class="stats">
+            <h3>📊 إحصائيات الأسبوع</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width:0%">0%</div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">إجمالي الجرعات</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTaken">0</div>
+                    <div class="stat-label">تم أخذها ✅</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statRemaining">0</div>
+                    <div class="stat-label">متبقية ⏳</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statPercent">0%</div>
+                    <div class="stat-label">نسبة الالتزام</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- الملاحظات -->
+        <div class="notes">
+            <h3>📝 ملاحظات</h3>
+            <textarea id="notesArea" placeholder="اكتب أي ملاحظات هنا (أعراض، تحاليل، مواعيد دكتور...)"></textarea>
+        </div>
+        
+        <!-- الأزرار -->
+        <div class="actions">
+            <button class="btn btn-print" onclick="window.print()">️ طباعة</button>
+            <button class="btn btn-save" onclick="saveAll()">💾 حفظ</button>
+            <button class="btn btn-clear" onclick="clearWeek()">️ مسح الأسبوع</button>
+        </div>
+    </div>
+
+    <script>
+        // ===== بيانات الأدوية =====
+        const medications = [
+            { id: 'norvasc',    name: 'Norvasc',       dose: '5 mg',      times: ['6 ص'],                  eod: false },
+            { id: 'conlortac',  name: 'Conlortac',     dose: '40 mg',     times: ['6 ص'],                  eod: false },
+            { id: 'gastreg',    name: 'Gast-reg',      dose: '100 mg',    times: ['6 ص', '2 م', '10 م'],   eod: false },
+            { id: 'prograf',    name: 'Prograf',       dose: '2.5 mg',    times: ['8 ص', '8 م'],           eod: false },
+            { id: 'cellcept',   name: 'Cellcept',      dose: '500 mg',    times: ['10 ص', '10 م'],         eod: false },
+            { id: 'solupred',   name: 'Solupred',      dose: '20 mg',     times: ['10 ص'],                 eod: false },
+            { id: 'aspirin',    name: 'Aspirin',       dose: '100 mg',    times: ['4 م'],                  eod: false },
+            { id: 'copad',      name: 'Copad',         dose: '10,000',    times: ['2 م'],                  eod: true  }, // يوم ويوم
+            { id: 'tavanic',    name: 'Tavanic',       dose: '-',        times: ['6 م'],                  eod: false },
+            { id: 'milga',      name: 'Milga advance', dose: '-',        times: ['6 م'],                  eod: false },
+            { id: 'septazole',  name: 'Septazole',     dose: '400/80',   times: ['10 م'],                 eod: false },
+            { id: 'melatonin',  name: 'Melatonin',     dose: '3 mg',      times: ['10 م'],                 eod: false },
+            { id: 'doliprane',  name: 'Doliprane',     dose: '1 g',       times: ['عند اللزوم'],           eod: false, prn: true },
+            { id: 'calmag',     name: 'Calmag',        dose: '-',        times: ['10 ص', '10 م'],         eod: false }
+        ];
+        
+        const startDate = new Date(2026, 6, 24); // 24 يوليو 2026
+        let currentWeekOffset = 0;
+        
+        // ===== دوال مساعدة =====
+        function addDays(date, days) {
+            const d = new Date(date);
+            d.setDate(d.getDate() + days);
+            return d;
+        }
+        
+        function formatDate(date) {
+            const d = date.getDate().toString().padStart(2, '0');
+            const m = (date.getMonth() + 1).toString().padStart(2, '0');
+            const y = date.getFullYear();
+            return `${d}/${m}/${y}`;
+        }
+        
+        function getDayName(date) {
+            const days = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+            return days[date.getDay()];
+        }
+        
+        function isToday(date) {
+            const today = new Date();
+            return date.toDateString() === today.toDateString();
+        }
+        
+        function isWeekend(date) {
+            const day = date.getDay();
+            return day === 5 || day === 6; // جمعة أو سبت
+        }
+        
+        function dateKey(date) {
+            return formatDate(date);
+        }
+        
+        function getStorageKey(medId, date, time) {
+            return `med_${medId}_${dateKey(date)}_${time}`;
+        }
+        
+        // ===== عرض المواعيد =====
+        function renderSchedule() {
+            const list = document.getElementById('scheduleList');
+            list.innerHTML = medications.map(med => `
+                <div class="sched-item">
+                    <div>
+                        <div class="med-name">${med.name}</div>
+                        <div style="font-size:10px;color:#888">${med.dose}</div>
+                    </div>
+                    <div class="med-time">${med.times.join(' - ')}${med.eod ? ' (يوم ويوم)' : ''}${med.prn ? ' (عند اللزوم)' : ''}</div>
+                </div>
+            `).join('');
+        }
+        
+        // ===== عرض الجدول =====
+        function renderTable() {
+            const weekStart = addDays(startDate, currentWeekOffset * 7);
+            const weekDates = Array.from({length: 7}, (_, i) => addDays(weekStart, i));
+            
+            // عنوان الأسبوع
+            const weekEnd = weekDates[6];
+            document.getElementById('weekLabel').textContent = 
+                `الأسبوع ${currentWeekOffset + 1} | ${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+            
+            // الرأس
+            const thead = document.getElementById('tableHead');
+            let headHTML = '<tr><th style="min-width:140px">الدواء</th>';
+            weekDates.forEach(date => {
+                let cls = '';
+                if (isToday(date)) cls = 'today-col';
+                else if (isWeekend(date)) cls = 'weekend-col';
+                headHTML += `<th class="${cls}">${getDayName(date)}<br>${formatDate(date)}</th>`;
+            });
+            headHTML += '</tr>';
+            thead.innerHTML = headHTML;
+            
+            // الجسم
+            const tbody = document.getElementById('tableBody');
+            let bodyHTML = '';
+            
+            medications.forEach(med => {
+                bodyHTML += `<tr>`;
+                bodyHTML += `<td class="med-cell">
+                    <div class="name">${med.name}</div>
+                    <div class="dose">${med.dose}</div>
+                    <div class="times">${med.times.join(' • ')}${med.eod ? '<br>⚠️ يوم ويوم' : ''}${med.prn ? '<br> عند اللزوم' : ''}</div>
+                </td>`;
+                
+                weekDates.forEach((date, dayIdx) => {
+                    let cellClass = '';
+                    if (isToday(date)) cellClass = 'today-col';
+                    else if (isWeekend(date)) cellClass = 'weekend-col';
+                    
+                    // حساب يوم ويوم (يوم زوجي/فردي من تاريخ البداية)
+                    const daysSinceStart = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+                    const isEodDay = daysSinceStart % 2 === 0; // الأيام الزوجية فقط
+                    
+                    if (med.eod && !isEodDay) {
+                        cellClass += ' eod-off';
+                    } else if (med.eod && isEodDay) {
+                        cellClass += ' eod-col';
+                    }
+                    
+                    bodyHTML += `<td class="${cellClass}"><div class="dose-cell">`;
+                    
+                    if (med.prn) {
+                        // عند اللزوم - checkbox واحد
+                        const key = getStorageKey(med.id, date, 'prn');
+                        const checked = localStorage.getItem(key) === 'true' ? 'checked' : '';
+                        bodyHTML += `<label class="dose-check ${checked ? 'checked' : ''}">
+                            <input type="checkbox" data-key="${key}" ${checked} onchange="toggleCheck(this)">
+                            <label>عند اللزوم</label>
+                        </label>`;
+                    } else {
+                        med.times.forEach(time => {
+                            const key = getStorageKey(med.id, date, time);
+                            const checked = localStorage.getItem(key) === 'true' ? 'checked' : '';
+                            bodyHTML += `<label class="dose-check ${checked ? 'checked' : ''}">
+                                <input type="checkbox" data-key="${key}" ${checked} onchange="toggleCheck(this)">
+                                <label>${time}</label>
+                            </label>`;
+                        });
+                    }
+                    
+                    bodyHTML += `</div></td>`;
+                });
+                
+                bodyHTML += `</tr>`;
+            });
+            
+            tbody.innerHTML = bodyHTML;
+            updateStats();
+        }
+        
+        function toggleCheck(cb) {
+            localStorage.setItem(cb.dataset.key, cb.checked);
+            const label = cb.parentElement;
+            if (cb.checked) label.classList.add('checked');
+            else label.classList.remove('checked');
+            updateStats();
+        }
+        
+        function updateStats() {
+            const checkboxes = document.querySelectorAll('#tableBody input[type="checkbox"]');
+            const checked = document.querySelectorAll('#tableBody input[type="checkbox"]:checked');
+            const total = checkboxes.length;
+            const taken = checked.length;
+            const remaining = total - taken;
+            const percent = total > 0 ? Math.round((taken / total) * 100) : 0;
+            
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statTaken').textContent = taken;
+            document.getElementById('statRemaining').textContent = remaining;
+            document.getElementById('statPercent').textContent = percent + '%';
+            
+            const fill = document.getElementById('progressFill');
+            fill.style.width = percent + '%';
+            fill.textContent = percent + '%';
+        }
+        
+        function changeWeek(dir) {
+            currentWeekOffset += dir;
+            if (currentWeekOffset < 0) currentWeekOffset = 0;
+            if (currentWeekOffset > 52) currentWeekOffset = 52;
+            renderTable();
+        }
+        
+        function goToToday() {
+            const today = new Date();
+            const diff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+            currentWeekOffset = Math.floor(diff / 7);
+            if (currentWeekOffset < 0) currentWeekOffset = 0;
+            renderTable();
+        }
+        
+        function saveAll() {
+            localStorage.setItem('notes', document.getElementById('notesArea').value);
+            localStorage.setItem('currentWeek', currentWeekOffset);
+            alert('✅ تم حفظ جميع البيانات بنجاح!');
+        }
+        
+        function clearWeek() {
+            if (!confirm('هل أنت متأكد من مسح بيانات الأسبوع الحالي؟')) return;
+            const weekStart = addDays(startDate, currentWeekOffset * 7);
+            const weekDates = Array.from({length: 7}, (_, i) => addDays(weekStart, i));
+            
+            medications.forEach(med => {
+                weekDates.forEach(date => {
+                    if (med.prn) {
+                        localStorage.removeItem(getStorageKey(med.id, date, 'prn'));
+                    } else {
+                        med.times.forEach(time => {
+                            localStorage.removeItem(getStorageKey(med.id, date, time));
+                        });
+                    }
+                });
+            });
+            renderTable();
+        }
+        
+        function loadNotes() {
+            const notes = localStorage.getItem('notes');
+            if (notes) document.getElementById('notesArea').value = notes;
+            const week = localStorage.getItem('currentWeek');
+            if (week !== null) currentWeekOffset = parseInt(week);
+        }
+        
+        // ===== التشغيل =====
+        function init() {
+            // عرض تاريخ اليوم
+            const today = new Date();
+            document.getElementById('todayDate').textContent = 
+                `${getDayName(today)} - ${formatDate(today)}`;
+            
+            renderSchedule();
+            loadNotes();
+            renderTable();
+        }
+        
+        init();
+    </script>
+</body>
+</html>
